@@ -1,5 +1,7 @@
 import gspread
 import pandas as pd
+import numpy as np
+
 
 
 def pull_sheet_data(sheet_name, worksheet_name, credentials_file):
@@ -22,9 +24,19 @@ def pull_sheet_data(sheet_name, worksheet_name, credentials_file):
         # Convert the data into a pandas DataFrame for easier analysis
         annual_transit_totals_df = pd.DataFrame(data)
 
-        cols_to_int = [col for col in annual_transit_totals_df.columns if col != 'Date']
 
-        annual_transit_totals_df[cols_to_int] = annual_transit_totals_df[cols_to_int].astype(int)
+        annual_transit_totals_df.columns = annual_transit_totals_df.iloc[1]
+        annual_transit_totals_df = annual_transit_totals_df.iloc[2:]
+
+        annual_transit_totals_df = annual_transit_totals_df.set_index('Date')
+        annual_transit_totals_df.index.name = None
+        annual_transit_totals_df.columns.name = None
+
+        annual_transit_totals_df = annual_transit_totals_df.replace('', np.nan)
+        annual_transit_totals_df = annual_transit_totals_df.dropna(axis=1)
+
+        annual_transit_totals_df = annual_transit_totals_df.apply(pd.to_numeric, errors='coerce')
+        annual_transit_totals_df = annual_transit_totals_df.astype('Int64')
 
         annual_transit_totals_df['EG_morning'] = annual_transit_totals_df["L1-1"] + annual_transit_totals_df["L2-1"] + annual_transit_totals_df["L3-1"]
         annual_transit_totals_df['BT_morning'] = annual_transit_totals_df["L4-1"] + annual_transit_totals_df["L5-1"] + annual_transit_totals_df["L6-1"]
@@ -32,13 +44,8 @@ def pull_sheet_data(sheet_name, worksheet_name, credentials_file):
         annual_transit_totals_df['BT_afternoon'] = annual_transit_totals_df["L4-2"] + annual_transit_totals_df["L5-2"] + annual_transit_totals_df["L6-2"]
         annual_transit_totals_df['EG_Total'] = annual_transit_totals_df["EG_morning"] + annual_transit_totals_df["EG_afternoon"] + annual_transit_totals_df["EG Loop Supplementals"]
         annual_transit_totals_df['BT_Total'] = annual_transit_totals_df["BT_morning"] + annual_transit_totals_df["BT_afternoon"] + annual_transit_totals_df["WG Loop Supplementals"]
-
-        annual_transit_main_totals_df = annual_transit_totals_df[['Date','EG_morning', 'EG_afternoon', 'EG Loop Supplementals','EG_Total', 'BT_morning', 
-            'BT_afternoon','WG Loop Supplementals', 'BT_Total', 'UC Total', 'Daily Total', 'NL Total', 'NC Total', 'Night Total', 'Bike Shuttle Total',
-            'Upper Campus Limited (ER)', 'Upper Campus Limited (WR)',
-            'Upper Campus Limited Total', 'WSC Shuttle', 'SVC Shuttle', 'Total', ]]
         
-        return annual_transit_main_totals_df
+        return annual_transit_totals_df
 
     except gspread.exceptions.SpreadsheetNotFound:
         print(f"Error: Spreadsheet named '{sheet_name}' not found.")
