@@ -2,7 +2,7 @@ import gspread
 import pandas as pd
 import numpy as np
 
-
+# function to pull data from google sheets 
 
 def pull_sheet_data(sheet_name, worksheet_name, credentials_file):
     """
